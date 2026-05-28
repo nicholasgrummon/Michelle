@@ -1,4 +1,5 @@
 import ollama
+import utils
 import os
 
 SAVE_CONTEXT_MSG = 'Summarize all messages, noting facts and who or what they describe. Refer to yourself only in second-person as "you".'
@@ -56,17 +57,25 @@ class Michelle:
     def save_context(self):
         self.add_context('user', SAVE_CONTEXT_MSG)
         memory = ollama.chat(self.secondary_modelname, messages=self.context)
-
         with open(os.path.join(self.personality_dirpath, 'memory.md'), 'w') as file:
             file.write(memory.message.content)
             file.write('\n')
+
+    
+    def handle_toolcalls(self, message):
+        if message[:8] == "!command":
+            message = message[9:]                       # drop "!command" prefix
+            result = utils.execute_bash(message)
+            message = " ".join(message.split()[1:])     # extract message
+        
+        return message
     
 
     def chat(self, stream=False):
         response = ollama.chat(self.modelname, messages=self.context, stream=stream)
-        # response = self.handle_toolcalls(response)
-        self.add_context("assistant", response.message.content)
-        return response.message.content
+        response = self.handle_toolcalls(response.message.content)
+        self.add_context("assistant", response)
+        return response
 
     # def __del__(self):
     #     ollama.delete(self.modelname)

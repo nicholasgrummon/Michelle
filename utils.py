@@ -1,4 +1,5 @@
 import subprocess
+import shlex
 
 def read_file(filepath):
     with open(filepath, "r") as file:
@@ -11,5 +12,5 @@ def write_file(filepath, content):
 
 
 def execute_bash(command):
-    result = subprocess.run(command.split(), capture_output=True, shell=True, text=True)
+    result = subprocess.run(shlex.split(command), capture_output=True, text=True)
     return result

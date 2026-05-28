@@ -1,5 +1,7 @@
 from michelle import Michelle
 import os
+import subprocess
+import utils
 
 def main():
     michelle = Michelle("llama3.1:8b")
@@ -14,15 +16,20 @@ def main():
 
     # michelle.save_context()
 
+    # print(os.listdir("skills"))
+
     # michelle.load_context()
     # print(michelle.context)
 
+    # result = subprocess.run(["./test.sh", "hello"], capture_output=True, text=True)
+    # print(result)
+
+    # utils.execute_bash('/home/ncg/Documents/Michelle/skills/speak/scripts/speak.sh "Hello world"')
+
     michelle.add_context("user", "Hello how are you today? Please speak your response")
     print(michelle.chat())
-    michelle.add_context("user", "I love the color orange.")
-    print(michelle.chat())
-
-    # print(os.listdir("skills"))
+    # michelle.add_context("user", "I love the color orange.")
+    # print(michelle.chat())
 
 if __name__=='__main__':
     main()
