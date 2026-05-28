@@ -26,7 +26,7 @@ def main():
 
     # utils.execute_bash('/home/ncg/Documents/Michelle/skills/speak/scripts/speak.sh "Hello world"')
 
-    michelle.add_context("user", "Hello how are you today? Please speak your response")
+    michelle.add_context("user", "Hello my name is Nicholas")
     print(michelle.chat())
     # michelle.add_context("user", "I love the color orange.")
     # print(michelle.chat())

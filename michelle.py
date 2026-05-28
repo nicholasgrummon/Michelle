@@ -43,7 +43,7 @@ class Michelle:
             self.add_context("system", file.read())
 
         # load memory
-        with open(os.path.join(self.personality_dirpath, 'memory.md'), 'r') as file:
+        with open(os.path.join(self.personality_dirpath, 'memory.json'), 'r') as file:
             self.add_context("system", "You know the following information:")
             self.add_context("system", file.read())
         
@@ -67,6 +67,15 @@ class Michelle:
             message = message[9:]                       # drop "!command" prefix
             result = utils.execute_bash(message)
             message = " ".join(message.split()[1:])     # extract message
+        
+        elif message[:9] == "!remember":
+            message = " ".join(message.split()[1:])
+            memory = ""
+            while message[0] != "!":
+                memory += message[0]
+                message = message[1:]
+            message = message[2:]
+            utils.append_file("/home/ncg/Documents/Michelle/personality/memory.json", memory+"\n")
         
         return message
     

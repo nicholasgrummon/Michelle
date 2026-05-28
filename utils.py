@@ -11,6 +11,11 @@ def write_file(filepath, content):
         file.write(content)
 
 
+def append_file(filepath, content):
+    with open(filepath, "a") as file:
+        file.write(content)
+
+
 def execute_bash(command):
     result = subprocess.run(shlex.split(command), capture_output=True, text=True)
     return result
