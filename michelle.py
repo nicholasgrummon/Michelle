@@ -2,16 +2,15 @@ import ollama
 import utils
 import os
 
-SAVE_CONTEXT_MSG = 'Summarize all messages, noting facts and who or what they describe. Refer to yourself only in second-person as "you".'
-
+PERSONALITY_PATH = '/home/ncg/Documents/Michelle/personality'
+SKILLS_PATH = '/home/ncg/Documents/Michelle/skills'
 class Michelle:
-    def __init__(self, modelname, secondary_modelname=None, personality_dirpath='personality', skills_dirpath='skills', voice_dirpath='voice_setup'):
+    def __init__(self, modelname, secondary_modelname=None, personality_dirpath=PERSONALITY_PATH, skills_dirpath=SKILLS_PATH):
         # constructor variables
         self.modelname = modelname
         self.secondary_modelname = secondary_modelname if secondary_modelname else modelname
         self.personality_dirpath = personality_dirpath
         self.skills_dirpath = skills_dirpath
-        self.voice_dirpath = voice_dirpath
 
         self.context = []
 
@@ -20,7 +19,6 @@ class Michelle:
         ollama.pull(self.secondary_modelname) # todo: async
         os.makedirs(self.personality_dirpath, exist_ok=True)
         os.makedirs(self.skills_dirpath, exist_ok=True)
-        os.makedirs(self.voice_dirpath, exist_ok=True)
         self.load_context()
 
 
@@ -52,14 +50,6 @@ class Michelle:
             if skill[0] != ".":
                 with open(os.path.join(self.skills_dirpath, skill, "SKILL.md")) as file:
                     self.add_context("system", file.read())
-
-
-    def save_context(self):
-        self.add_context('user', SAVE_CONTEXT_MSG)
-        memory = ollama.chat(self.secondary_modelname, messages=self.context)
-        with open(os.path.join(self.personality_dirpath, 'memory.md'), 'w') as file:
-            file.write(memory.message.content)
-            file.write('\n')
 
     
     def handle_toolcalls(self, message):
