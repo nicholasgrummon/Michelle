@@ -1,5 +1,5 @@
 import ollama
-import utils
+import tools
 import os
 
 PERSONALITY_PATH = '/home/ncg/Documents/Michelle/personality'
@@ -55,7 +55,7 @@ class Michelle:
     def handle_toolcalls(self, message):
         if message[:8] == "!command":
             message = message[9:]                       # drop "!command" prefix
-            result = utils.execute_bash(message)
+            result = tools.execute_bash(message)
             message = " ".join(message.split()[1:])     # extract message
         
         elif message[:9] == "!remember":
@@ -65,7 +65,7 @@ class Michelle:
                 memory += message[0]
                 message = message[1:]
             message = message[2:]
-            utils.append_file("/home/ncg/Documents/Michelle/personality/memory.json", memory+"\n")
+            tools.append_file("/home/ncg/Documents/Michelle/personality/memory.json", memory+"\n")
         
         return message
     

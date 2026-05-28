@@ -1,7 +1,7 @@
 from michelle import Michelle
 import os
 import subprocess
-import utils
+import tools
 
 def main():
     michelle = Michelle("llama3.1:8b")
