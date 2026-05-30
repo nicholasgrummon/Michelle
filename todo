@@ -1,0 +1,1 @@
+better workflow for toolcalls dynamically. But abstractly (no "remember" tool, just context and read/write toolcalls)

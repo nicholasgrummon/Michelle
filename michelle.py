@@ -4,11 +4,15 @@ import os
 
 PERSONALITY_PATH = '/home/ncg/Documents/Michelle/personality'
 SKILLS_PATH = '/home/ncg/Documents/Michelle/skills'
+MAX_TOOL_ITERATIONS = 5
+
 class Michelle:
     def __init__(self, modelname, secondary_modelname=None, personality_dirpath=PERSONALITY_PATH, skills_dirpath=SKILLS_PATH):
         self.modelname = modelname
         self.secondary_modelname = secondary_modelname if secondary_modelname else modelname
         self.personality_dirpath = personality_dirpath
+        self.tools = [tool.tool_def for tool in tools.tools_list]
+        self.tool_map = {tool.tool_def["function"]["name"]: tool for tool in tools.tools_list}
         self.skills_dirpath = skills_dirpath
 
         self.context = []
@@ -48,31 +52,39 @@ class Michelle:
             if skill[0] != ".":
                 with open(os.path.join(self.skills_dirpath, skill, "SKILL.md")) as file:
                     await self.add_context("system", file.read())
-
-    
-    def handle_toolcalls(self, message):
-        if message[:8] == "!command":
-            message = message[9:]                       # drop "!command" prefix
-            result = tools.execute_bash(message)
-            message = " ".join(message.split()[1:])     # extract message
-        
-        elif message[:9] == "!remember":
-            message = " ".join(message.split()[1:])
-            memory = ""
-            while message[0] != "!":
-                memory += message[0]
-                message = message[1:]
-            message = message[2:]
-            tools.append_file("/home/ncg/Documents/Michelle/personality/memory.json", memory+"\n")
-        
-        return message
     
 
-    async def chat(self, stream=False):
-        response = ollama.chat(self.modelname, messages=self.context, stream=stream)
-        response = self.handle_toolcalls(response.message.content)
-        await self.add_context("assistant", response)
-        return response
+    def handle_toolcall(self, tool_call):
+        name = tool_call.function.name
+        args = tool_call.function.arguments
+        return self.tool_map[name].run(args)
+
+
+    async def chat(self, show_toolcalls=False, stream=False):
+        iteration = 0
+        while iteration < MAX_TOOL_ITERATIONS:
+            response = ollama.chat(model=self.modelname,
+                                    messages=self.context,
+                                    tools=self.tools,
+                                    stream=stream)
+            
+            # no tool calls --> return response to user
+            print(response.message)
+            if not response.message.tool_calls:
+                await self.add_context("assistant", response)
+                return response.message.content
+
+            # has tool calls --> continue loop
+            for tool_call in response.message.tool_calls:
+                if show_toolcalls:
+                    print(tool_call)
+
+                tool_response = self.handle_toolcall(tool_call)
+                await self.add_context("tool", tool_response)
+
+            iteration += 1
+        
+        return "reached maximum iteration depth without response" # todo formulate response
 
     # def __del__(self):
     #     ollama.delete(self.modelname)

@@ -2,9 +2,10 @@ from michelle import Michelle
 import os
 import subprocess
 import tools
+import asyncio
 
-def main():
-    michelle = Michelle("llama3.1:8b")
+async def main():
+    michelle = Michelle("ministral-3:14b")
 
     # michelle.add_context("user", "Why is the sky blue?")
     # print(michelle.context)
@@ -26,10 +27,8 @@ def main():
 
     # utils.execute_bash('/home/ncg/Documents/Michelle/skills/speak/scripts/speak.sh "Hello world"')
 
-    michelle.add_context("user", "Hello my name is Nicholas")
-    print(michelle.chat())
-    # michelle.add_context("user", "I love the color orange.")
-    # print(michelle.chat())
+    await michelle.add_context("user", "Read the contents of /home/ncg/Documents/Michelle/skills/clock/resources/time.txt")
+    response = await michelle.chat(show_toolcalls=True)
+    print(response)
 
-if __name__=='__main__':
-    main()
+asyncio.run(main())
