@@ -1,1 +1,4 @@
 better workflow for toolcalls dynamically. But abstractly (no "remember" tool, just context and read/write toolcalls)
+append to file, not just overwrite
+check context window is appropriately sized
+Edit stay-loaded-in-memory window

@@ -1,6 +1,5 @@
 #!/bin/bash
 dialogue=$1
-echo $dialogue
 
 <<<$dialogue /home/ncg/Documents/Michelle/.venv/bin/python -m piper \
 --data-dir /home/ncg/Documents/Michelle/skills/speak/resources \

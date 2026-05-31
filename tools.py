@@ -50,7 +50,7 @@ class RunBash:
         "type": "function",
         "function": {
             "name": "run_bash",
-            "description": "Execute a bash terminal command when explicitly asked to do so and given a specific command.",
+            "description": "Execute a bash terminal command when explicitly asked to do so and given a specific command that you have not already run.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -66,7 +66,7 @@ class RunBash:
         import subprocess
         result = subprocess.run(cmd, capture_output=True, shell=True, text=True)
         if result.returncode == 0:
-            return(result.stdout) # this goes back as the tool result message
+            return result.stdout if result.stdout else "Speaking done"
         else:
             return "Command failed"
     

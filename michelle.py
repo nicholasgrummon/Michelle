@@ -26,7 +26,7 @@ class Michelle:
         await self.load_context()
 
 
-    async def add_context(self, role, content):
+    async def add_context(self, role, content, tool_call_id=None):
         '''append to the context window
         role: system, user, assistant
         content: text to be appended
@@ -66,12 +66,15 @@ class Michelle:
     async def chat(self, show_toolcalls=False, think=False, stream=False):
         iteration = 0
         while iteration < MAX_TOOL_ITERATIONS:
+            print(self.context)
             response = ollama.chat(model=self.modelname,
                                     messages=self.context,
                                     tools=self.tools,
                                     think=think,
                                     stream=stream)
             
+            print("\n\n",response.message.thinking)
+
             # no tool calls --> return response to user
             if not response.message.tool_calls:
                 await self.add_context("assistant", response)
@@ -80,7 +83,7 @@ class Michelle:
             # has tool calls --> continue loop
             for tool_call in response.message.tool_calls:
                 if show_toolcalls:
-                    print(iteration, tool_call)
+                    print("\n\n",iteration, tool_call)
 
                 tool_response = self.handle_toolcall(tool_call)
                 await self.add_context("tool", tool_response)
