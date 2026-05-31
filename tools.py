@@ -16,7 +16,7 @@ class ReadFile:
     
     def run(self, args: dict):
         path = args["path"]
-        with open(path) as f:
+        with open(path, "r") as f:
             content = f.read()
         return content  # this goes back as the tool result message
 
@@ -26,7 +26,7 @@ class WriteFile:
         "type": "function",
         "function": {
             "name": "write_file",
-            "description": "Write content into a file",
+            "description": "Write content into a file when asked to do so and given a specific filepath.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -41,9 +41,9 @@ class WriteFile:
     def run(self, args: dict):
         path = args["path"]
         content = args["content"]
-        with open(path) as f:
+        with open(path, "w") as f:
             f.write(content)
-        return("done")
+        return("Done writing") # this goes back as the tool result message
     
 tools_list = [
     ReadFile(),

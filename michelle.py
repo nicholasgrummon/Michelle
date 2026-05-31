@@ -38,16 +38,17 @@ class Michelle:
 
     async def load_context(self):
         # load identity
+        await self.add_context("system", "The following defines your identity:")
         with open(os.path.join(self.personality_dirpath, 'identity.md'), 'r') as file:
-            await self.add_context("system", "The following defines your identity:")
             await self.add_context("system", file.read())
 
         # load memory
+        await self.add_context("system", "You know the following information:")
         with open(os.path.join(self.personality_dirpath, 'memory.json'), 'r') as file:
-            await self.add_context("system", "You know the following information:")
             await self.add_context("system", file.read())
         
         # load skills
+        await self.add_context("system", "You know the following skills. Skills are only additional context and are NOT tools.")
         for skill in os.listdir(self.skills_dirpath):
             if skill[0] != ".":
                 with open(os.path.join(self.skills_dirpath, skill, "SKILL.md")) as file:
@@ -60,24 +61,24 @@ class Michelle:
         return self.tool_map[name].run(args)
 
 
-    async def chat(self, show_toolcalls=False, stream=False):
+    async def chat(self, show_toolcalls=False, think=False, stream=False):
         iteration = 0
         while iteration < MAX_TOOL_ITERATIONS:
             response = ollama.chat(model=self.modelname,
                                     messages=self.context,
                                     tools=self.tools,
+                                    think=think,
                                     stream=stream)
             
             # no tool calls --> return response to user
-            print(response.message)
             if not response.message.tool_calls:
                 await self.add_context("assistant", response)
-                return response.message.content
+                return response
 
             # has tool calls --> continue loop
             for tool_call in response.message.tool_calls:
                 if show_toolcalls:
-                    print(tool_call)
+                    print(iteration, tool_call)
 
                 tool_response = self.handle_toolcall(tool_call)
                 await self.add_context("tool", tool_response)

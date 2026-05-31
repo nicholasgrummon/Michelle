@@ -5,7 +5,8 @@ import tools
 import asyncio
 
 async def main():
-    michelle = Michelle("ministral-3:14b")
+    michelle = Michelle("qwen3:14b")
+    await michelle.start()
 
     # michelle.add_context("user", "Why is the sky blue?")
     # print(michelle.context)
@@ -27,8 +28,10 @@ async def main():
 
     # utils.execute_bash('/home/ncg/Documents/Michelle/skills/speak/scripts/speak.sh "Hello world"')
 
-    await michelle.add_context("user", "Read the contents of /home/ncg/Documents/Michelle/skills/clock/resources/time.txt")
-    response = await michelle.chat(show_toolcalls=True)
-    print(response)
+    await michelle.add_context("user", "I am an engineer.")
+    # await michelle.add_context("user", "Write 'hello world' into the file '/home/ncg/Documents/Michelle/hello.txt'.")
+    response = await michelle.chat(show_toolcalls=True, think=True)
+    print(response.message.thinking)
+    print(response.message.content)
 
 asyncio.run(main())
