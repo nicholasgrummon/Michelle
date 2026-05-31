@@ -43,9 +43,36 @@ class WriteFile:
         content = args["content"]
         with open(path, "w") as f:
             f.write(content)
-        return("Done writing") # this goes back as the tool result message
+        return "Done writing" # this goes back as the tool result message
     
+class RunBash:
+    tool_def = {
+        "type": "function",
+        "function": {
+            "name": "run_bash",
+            "description": "Execute a bash terminal command when explicitly asked to do so and given a specific command.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "cmd": {"type": "string", "description": "Specific command provided to you"},
+                },
+                "required": ["cmd"]
+            }
+        }
+    }
+    
+    def run(self, args: dict):
+        cmd = args["cmd"]
+        import subprocess
+        result = subprocess.run(cmd, capture_output=True, shell=True, text=True)
+        if result.returncode == 0:
+            return(result.stdout) # this goes back as the tool result message
+        else:
+            return "Command failed"
+    
+
 tools_list = [
     ReadFile(),
-    WriteFile()
+    WriteFile(),
+    RunBash()
 ]

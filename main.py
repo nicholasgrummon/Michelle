@@ -28,7 +28,7 @@ async def main():
 
     # utils.execute_bash('/home/ncg/Documents/Michelle/skills/speak/scripts/speak.sh "Hello world"')
 
-    await michelle.add_context("user", "I am an engineer.")
+    await michelle.add_context("user", "Run the command 'pwd'")
     # await michelle.add_context("user", "Write 'hello world' into the file '/home/ncg/Documents/Michelle/hello.txt'.")
     response = await michelle.chat(show_toolcalls=True, think=True)
     print(response.message.thinking)

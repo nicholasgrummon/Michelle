@@ -17,12 +17,14 @@ class Michelle:
 
         self.context = []
     
+
     async def start(self):
         ollama.pull(self.modelname) # todo: async
         ollama.pull(self.secondary_modelname) # todo: async
         os.makedirs(self.personality_dirpath, exist_ok=True)
         os.makedirs(self.skills_dirpath, exist_ok=True)
         await self.load_context()
+
 
     async def add_context(self, role, content):
         '''append to the context window
