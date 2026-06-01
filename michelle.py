@@ -1,19 +1,24 @@
 import ollama
 import tools
 import os
+import subprocess
 
 PERSONALITY_PATH = '/home/ncg/Documents/Michelle/personality'
 SKILLS_PATH = '/home/ncg/Documents/Michelle/skills'
+VOICE_DIRPATH = '/home/ncg/Documents/Michelle/voice_setup'
 MAX_TOOL_ITERATIONS = 5
 
 class Michelle:
-    def __init__(self, modelname, secondary_modelname=None, personality_dirpath=PERSONALITY_PATH, skills_dirpath=SKILLS_PATH):
+    def __init__(self, modelname, secondary_modelname=None, personality_dirpath=PERSONALITY_PATH, skills_dirpath=SKILLS_PATH, voice_dirpath=VOICE_DIRPATH):
         self.modelname = modelname
         self.secondary_modelname = secondary_modelname if secondary_modelname else modelname
+        self.this_dirpath = os.path.dirname(os.path.abspath(__file__))
         self.personality_dirpath = personality_dirpath
+        self.skills_dirpath = skills_dirpath
+        self.voice_dirpath = voice_dirpath
+
         self.tools = [tool.tool_def for tool in tools.tools_list]
         self.tool_map = {tool.tool_def["function"]["name"]: tool for tool in tools.tools_list}
-        self.skills_dirpath = skills_dirpath
 
         self.context = []
     
@@ -63,23 +68,37 @@ class Michelle:
         return self.tool_map[name].run(args)
 
 
-    async def chat(self, show_toolcalls=False, think=False, stream=False):
+    def speak(self, content):
+        python_path = os.path.join(self.this_dirpath, ".venv/bin/python")
+        command = (
+            f'{python_path} -m piper '
+            f'--data-dir {VOICE_DIRPATH} '
+            f'-m en_US-libritts_r-medium '
+            '--output-file - | aplay'
+        )
+        
+        try:
+            subprocess.run(command, input=content, capture_output=True, shell=True, text=True)
+        except Exception as e:
+            print(e)
+
+
+    async def chat(self, speaking_mode=False, show_toolcalls=False, think=False, stream=False):
         iteration = 0
         while iteration < MAX_TOOL_ITERATIONS:
-            print(self.context)
             response = ollama.chat(model=self.modelname,
                                     messages=self.context,
                                     tools=self.tools,
                                     think=think,
                                     stream=stream)
             
-            print("\n\n",response.message.thinking)
-
             # no tool calls --> return response to user
             if not response.message.tool_calls:
-                await self.add_context("assistant", response)
+                await self.add_context("assistant", response.message.content)
+                if speaking_mode:
+                    self.speak(response.message.content)
                 return response
-
+            
             # has tool calls --> continue loop
             for tool_call in response.message.tool_calls:
                 if show_toolcalls:
