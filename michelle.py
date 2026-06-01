@@ -9,10 +9,11 @@ VOICE_DIRPATH = '/home/ncg/Documents/Michelle/voice_setup'
 MAX_TOOL_ITERATIONS = 5
 
 class Michelle:
-    def __init__(self, modelname, secondary_modelname=None, context_size=4096, personality_dirpath=PERSONALITY_PATH, skills_dirpath=SKILLS_PATH, voice_dirpath=VOICE_DIRPATH):
+    def __init__(self, modelname, secondary_modelname=None, context_size=4096, keep_alive=900, personality_dirpath=PERSONALITY_PATH, skills_dirpath=SKILLS_PATH, voice_dirpath=VOICE_DIRPATH):
         self.modelname = modelname
         self.secondary_modelname = secondary_modelname if secondary_modelname else modelname
         self.context_size = context_size
+        self.keep_alive = keep_alive # integer or "forever" - length of time in seconds to keep model loaded
         self.context = []
 
         self.this_dirpath = os.path.dirname(os.path.abspath(__file__))
@@ -92,7 +93,9 @@ class Michelle:
                                     tools=self.tools,
                                     think=think,
                                     stream=stream,
-                                    options={"num_ctx": self.context_size})
+                                    options={"num_ctx": self.context_size},
+                                    keep_alive=self.keep_alive
+            )
             
             # no tool calls --> return response to user
             if not response.message.tool_calls:
