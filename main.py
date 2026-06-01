@@ -5,7 +5,7 @@ import tools
 import asyncio
 
 async def main():
-    michelle = Michelle("qwen3:14b")
+    michelle = Michelle("qwen3:14b", context_size=15000)
     await michelle.start()
 
     await michelle.add_context("user", "What is the answer to the question of life, the universe, and everything else? Speak aloud.")
