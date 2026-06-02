@@ -1,7 +1,7 @@
 from michelle import Michelle
 import os
 import subprocess
-import tools
+import tools.tools_file as tools_file
 import asyncio
 
 async def main():
@@ -33,9 +33,12 @@ async def main():
     # await michelle.add_context("user", "Run the command 'pwd'")
     # await michelle.add_context("user", "Run the command '/home/ncg/Documents/Michelle/skills/speak/scripts/speak.sh \"Hello World\"'")
     # await michelle.add_context("user", "Speak the phrase 'hello world'")
-    await michelle.add_context("user", "What is the answer to the question of life, the universe, and everything else? Speak aloud.")
-    response = await michelle.chat(speaking_mode=True, show_toolcalls=True, think=False)
-    print(response)
+    # await michelle.add_context("user", "What is the answer to the question of life, the universe, and everything else? Speak aloud.")
+    # response = await michelle.chat(speaking_mode=True, show_toolcalls=True, think=False)
+    # print(response)
     # print(michelle.context)
 
-asyncio.run(main())
+    michelle.listen()
+
+if __name__=='__main__':
+    asyncio.run(main())

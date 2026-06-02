@@ -1,5 +1,5 @@
 better workflow for toolcalls dynamically. But abstractly (e.g. no "remember" tool, just context and read/write toolcalls from "remember" skill)
 append to file, not just overwrite
 --check context window is appropriately sized
-Extend stay-loaded time period
+--Extend stay-loaded time period
 context length pruning

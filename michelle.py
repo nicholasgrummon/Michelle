@@ -1,17 +1,33 @@
-import ollama
-import tools
 import os
+import time
 import subprocess
+import threading
 
+import ollama
+import whisper
+
+import tools.tools_file as tools_file
+import audio_setup.listener as listener
+
+# GLOBALS
+# Model Setup
 PERSONALITY_PATH = '/home/ncg/Documents/Michelle/personality'
 SKILLS_PATH = '/home/ncg/Documents/Michelle/skills'
-VOICE_DIRPATH = '/home/ncg/Documents/Michelle/voice_setup'
 MAX_TOOL_ITERATIONS = 5
 
+# Audio Setup
+AUDIO_DIRPATH = '/home/ncg/Documents/Michelle/audio_setup'
+DEVICE_INDEX   = 5          # Your microphone device, get via sounddevice.query_devices()
+SAMPLE_RATE    = 16000      # Whisper expects 16 kHz
+CHANNELS       = 1          # Mono
+CHUNK_SECONDS  = 5          # How many seconds of audio to transcribe at once
+WHISPER_MODEL  = "small"     # tiny | base | small | medium | large
+
 class Michelle:
-    def __init__(self, modelname, secondary_modelname=None, context_size=4096, keep_alive=900, personality_dirpath=PERSONALITY_PATH, skills_dirpath=SKILLS_PATH, voice_dirpath=VOICE_DIRPATH):
+    def __init__(self, modelname, secondary_modelname=None, context_size=4096, keep_alive=900, personality_dirpath=PERSONALITY_PATH, skills_dirpath=SKILLS_PATH, AUDIO_DIRPATH=AUDIO_DIRPATH):
         self.modelname = modelname
         self.secondary_modelname = secondary_modelname if secondary_modelname else modelname
+        self.transcribe_model = whisper.load_model(WHISPER_MODEL)
         self.context_size = context_size
         self.keep_alive = keep_alive # integer or "forever" - length of time in seconds to keep model loaded
         self.context = []
@@ -19,10 +35,10 @@ class Michelle:
         self.this_dirpath = os.path.dirname(os.path.abspath(__file__))
         self.personality_dirpath = personality_dirpath
         self.skills_dirpath = skills_dirpath
-        self.voice_dirpath = voice_dirpath
+        self.AUDIO_DIRPATH = AUDIO_DIRPATH
 
-        self.tools = [tool.tool_def for tool in tools.tools_list]
-        self.tool_map = {tool.tool_def["function"]["name"]: tool for tool in tools.tools_list}
+        self.tools = [tool.tool_def for tool in tools_file.tools_list]
+        self.tool_map = {tool.tool_def["function"]["name"]: tool for tool in tools_file.tools_list}
     
 
     async def start(self):
@@ -74,7 +90,7 @@ class Michelle:
         python_path = os.path.join(self.this_dirpath, ".venv/bin/python")
         command = (
             f'{python_path} -m piper '
-            f'--data-dir {VOICE_DIRPATH} '
+            f'--data-dir {AUDIO_DIRPATH} '
             f'-m en_US-libritts_r-medium '
             '--output-file - | aplay'
         )
@@ -83,9 +99,39 @@ class Michelle:
             subprocess.run(command, input=content, capture_output=True, shell=True, text=True)
         except Exception as e:
             print(e)
+    
+    
+    def listen(self):
+        listener.stop_event.clear()
+        # recording thread
+        rec_thread = threading.Thread(
+            target=listener.record_worker,
+            args=(DEVICE_INDEX, SAMPLE_RATE, CHANNELS, CHUNK_SECONDS),
+            daemon=True
+        )
+        rec_thread.start()
 
+        # transcription thread
+        trans_thread = threading.Thread(
+            target=listener.transcribe_worker,
+            args=(self.transcribe_model,),
+            daemon=True
+        )
+        trans_thread.start()
 
-    async def chat(self, speaking_mode=False, show_toolcalls=False, think=False, stream=False):
+        try:
+            while rec_thread.is_alive() or trans_thread.is_alive():
+                time.sleep(0.2)
+        except KeyboardInterrupt:
+            listener.stop_event.set()
+        
+        rec_thread.join(timeout=3)
+        trans_thread.join(timeout=10)
+        
+        return listener.transcription_result
+    
+
+    async def chat(self, show_toolcalls=False, think=False, stream=False):
         iteration = 0
         while iteration < MAX_TOOL_ITERATIONS:
             response = ollama.chat(model=self.modelname,
@@ -100,8 +146,6 @@ class Michelle:
             # no tool calls --> return response to user
             if not response.message.tool_calls:
                 await self.add_context("assistant", response.message.content)
-                if speaking_mode:
-                    self.speak(response.message.content)
                 return response
             
             # has tool calls --> continue loop
@@ -115,6 +159,17 @@ class Michelle:
             iteration += 1
         
         return "reached maximum iteration depth without response" # todo formulate response
+    
+
+    def conversation_loop(self):
+        user_message = ""
+        while "bye" not in user_message:
+            user_message = self.listen()
+            self.add_context("user", user_message)
+            response = self.chat()
+            self.speak(response.message.content)
+            self.add_context("assistant", response)
+
 
     # def __del__(self):
     #     ollama.delete(self.modelname)
