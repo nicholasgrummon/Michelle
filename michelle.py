@@ -142,6 +142,8 @@ class Michelle:
                                     options={"num_ctx": self.context_size},
                                     keep_alive=self.keep_alive
             )
+
+            print(response.message.thinking, "\n")
             
             # no tool calls --> return response to user
             if not response.message.tool_calls:

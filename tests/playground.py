@@ -38,7 +38,11 @@ async def main():
     # print(response)
     # print(michelle.context)
 
-    michelle.listen()
+    # michelle.listen()
+
+    await michelle.add_context("user", "what is the time?")
+    response = await michelle.chat(think=True)
+    print(response.message.content)
 
 if __name__=='__main__':
     asyncio.run(main())
