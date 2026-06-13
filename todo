@@ -2,5 +2,5 @@ better workflow for toolcalls dynamically. But abstractly (e.g. no "remember" to
 append to file, not just overwrite
 --check context window is appropriately sized
 --Extend stay-loaded time period
-context length pruning
+--context length pruning
 remove absolute filepaths from skills and tools

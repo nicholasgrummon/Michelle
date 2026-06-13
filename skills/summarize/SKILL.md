@@ -21,7 +21,7 @@ Whenever information is provided to you:
 - depictive: describes the appearance, functionality, or attributes.
 - situational: describes how the entity is related to the conversation.
 8. Record the information in the following json format: `{"entity":<role or name>, "category":<episodic, semantic, depictive, situational>, "information":<enter information here>}`
-9. Use a tool to write the json format information into the file: "/home/ncg/Documents/6_Projects/Michelle/personality/memory1.json"
+9. Append the json format information to the file: "/home/ncg/Documents/6_Projects/Michelle/personality/memory.json". This file is read into your context at the start of every conversation, so anything you record here will be remembered later. To append without losing what is already there, read the file's current contents first, then write back those contents plus your new line.
 
 # Rules
 - Ask for clarification about conflicting information.
@@ -30,3 +30,7 @@ Whenever information is provided to you:
 - If information describes multiple entities (e.g. a person and a place), pick the primary entity.
 - The information you record should be as brief as possible. Avoid complete sentences.
 - Conclude the json format with a single comma (","). Avoid extra curly brackets ("{}")
+- One line per entry. Never overwrite or remove existing entries.
+
+# See Also
+- When the conversation grows long, older messages are automatically condensed into a short "Summary of earlier conversation" system message, using these same memory conventions to preserve any durable facts. This happens automatically and does not need to be triggered manually.

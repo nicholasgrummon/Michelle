@@ -15,6 +15,12 @@ PERSONALITY_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'per
 SKILLS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'skills')
 MAX_TOOL_ITERATIONS = 5
 
+# Context Pruning
+CONTEXT_PRUNE_THRESHOLD = 0.75   # fraction of context_size that triggers pruning
+CONTEXT_PRUNE_KEEP_RECENT = 6    # most recent context messages always kept verbatim
+CHARS_PER_TOKEN = 4               # rough heuristic for estimating token counts from text length
+CONDENSE_PROMPT_PATH = os.path.join(SKILLS_PATH, 'summarize', 'resources', 'condense_prompt.md')
+
 # Audio Setup
 AUDIO_DIRPATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'audio_setup')
 DEVICE_INDEX   = 5          # Your microphone device, get via sounddevice.query_devices()
@@ -25,12 +31,13 @@ WHISPER_MODEL  = "small"     # tiny | base | small | medium | large
 
 class Michelle:
     def __init__(self, modelname, secondary_modelname=None, context_size=4096, keep_alive=900, personality_dirpath=PERSONALITY_PATH, skills_dirpath=SKILLS_PATH, AUDIO_DIRPATH=AUDIO_DIRPATH):
-        self.modelname = modelname
-        self.secondary_modelname = secondary_modelname if secondary_modelname else modelname
+        self.modelname = modelname # primary chat model
+        self.secondary_modelname = secondary_modelname if secondary_modelname else modelname # context-condenser model
         self.transcribe_model = whisper.load_model(WHISPER_MODEL)
         self.context_size = context_size
         self.keep_alive = keep_alive # integer or "forever" - length of time in seconds to keep model loaded
         self.context = []
+        self.context_prelude_length = 0 # number of leading messages (identity, memory, skills) never pruned
 
         self.this_dirpath = os.path.dirname(os.path.abspath(__file__))
         self.personality_dirpath = personality_dirpath
@@ -78,7 +85,80 @@ class Michelle:
             if skill[0] != ".":
                 with open(os.path.join(self.skills_dirpath, skill, "SKILL.md")) as file:
                     await self.add_context("system", file.read())
-    
+
+        # everything above this point (identity, memory, skills) is never pruned
+        self.context_prelude_length = len(self.context)
+
+
+    def estimate_tokens(self, messages=None):
+        '''rough estimate of the token count of a list of messages (defaults to the current context),
+        using a chars-per-token heuristic since exact tokenization depends on the model
+        '''
+        if messages is None:
+            messages = self.context
+        total_chars = sum(len(message.get('content') or '') for message in messages)
+        return total_chars // CHARS_PER_TOKEN
+
+
+    def context_is_full(self):
+        '''whether the context window is near self.context_size and should be pruned'''
+        return self.estimate_tokens() > self.context_size * CONTEXT_PRUNE_THRESHOLD
+
+
+    async def prune_context(self):
+        '''condense the oldest prunable portion of the conversation into a short summary,
+        extracting any durable facts into memory.json along the way, to free up space
+        in the context window. The prelude (identity, memory, skills) and the most
+        recent messages are left untouched.
+        '''
+        start = self.context_prelude_length
+        end = len(self.context) - CONTEXT_PRUNE_KEEP_RECENT
+        if end <= start:
+            return # not enough conversation history to prune yet
+
+        chunk = self.context[start:end]
+        chunk_text = "\n".join(f"{message['role']}: {message['content']}" for message in chunk if message.get('content'))
+
+        with open(CONDENSE_PROMPT_PATH, 'r') as file:
+            condense_instructions = file.read()
+
+        response = ollama.chat(model=self.secondary_modelname,
+                                messages=[
+                                    {"role": "system", "content": condense_instructions},
+                                    {"role": "user", "content": chunk_text}
+                                ],
+                                think=False,
+                                stream=False,
+                                options={"num_ctx": self.context_size},
+                                keep_alive=self.keep_alive
+        )
+
+        summary, memory_entries = self._parse_condense_response(response.message.content)
+
+        if memory_entries:
+            with open(os.path.join(self.personality_dirpath, 'memory.json'), 'a') as file:
+                for entry in memory_entries:
+                    file.write(entry + "\n")
+
+        summary_message = {"role": "system", "content": f"Summary of earlier conversation: {summary}"}
+        self.context = self.context[:start] + [summary_message] + self.context[end:]
+        self.context_prelude_length = start + 1
+
+
+    def _parse_condense_response(self, content):
+        '''split a condense_prompt response into its narrative summary and a list of
+        raw memory entry lines, per the format described in condense_prompt.md
+        '''
+        if "MEMORY:" in content:
+            summary_part, memory_part = content.split("MEMORY:", 1)
+        else:
+            summary_part, memory_part = content, ""
+
+        summary = summary_part.replace("SUMMARY:", "").strip()
+        memory_entries = [line.strip() for line in memory_part.strip().splitlines() if line.strip().startswith("{")]
+
+        return summary, memory_entries
+
 
     def handle_toolcall(self, tool_call):
         name = tool_call.function.name
@@ -132,6 +212,9 @@ class Michelle:
     
 
     async def chat(self, show_toolcalls=False, think=False, stream=False):
+        if self.context_is_full():
+            await self.prune_context()
+
         iteration = 0
         while iteration < MAX_TOOL_ITERATIONS:
             response = ollama.chat(model=self.modelname,
