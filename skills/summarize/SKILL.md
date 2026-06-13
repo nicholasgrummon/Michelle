@@ -21,7 +21,7 @@ Whenever information is provided to you:
 - depictive: describes the appearance, functionality, or attributes.
 - situational: describes how the entity is related to the conversation.
 8. Record the information in the following json format: `{"entity":<role or name>, "category":<episodic, semantic, depictive, situational>, "information":<enter information here>}`
-9. Use a tool to write the json format information into the file: "/home/ncg/Documents/Michelle/personality/memory1.json"
+9. Use a tool to write the json format information into the file: "/home/ncg/Documents/6_Projects/Michelle/personality/memory1.json"
 
 # Rules
 - Ask for clarification about conflicting information.

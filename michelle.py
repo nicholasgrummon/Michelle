@@ -11,12 +11,12 @@ import audio_setup.listener as listener
 
 # GLOBALS
 # Model Setup
-PERSONALITY_PATH = '/home/ncg/Documents/Michelle/personality'
-SKILLS_PATH = '/home/ncg/Documents/Michelle/skills'
+PERSONALITY_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'personality')
+SKILLS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'skills')
 MAX_TOOL_ITERATIONS = 5
 
 # Audio Setup
-AUDIO_DIRPATH = '/home/ncg/Documents/Michelle/audio_setup'
+AUDIO_DIRPATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'audio_setup')
 DEVICE_INDEX   = 5          # Your microphone device, get via sounddevice.query_devices()
 SAMPLE_RATE    = 16000      # Whisper expects 16 kHz
 CHANNELS       = 1          # Mono
@@ -142,8 +142,6 @@ class Michelle:
                                     options={"num_ctx": self.context_size},
                                     keep_alive=self.keep_alive
             )
-
-            print(response.message.thinking, "\n")
             
             # no tool calls --> return response to user
             if not response.message.tool_calls:
